@@ -9,8 +9,8 @@ let userID = '6867c3c7-ba33-4cda-8201-588f8bb41f14';
 let proxyIP = '';// 小白勿动，该地址并不影响你的网速，这是给CF代理使用的。'cdn.xn--b6gac.eu.org', 'cdn-all.xn--b6gac.eu.org', 'edgetunnel.anycast.eu.org'
 
 //let sub = '';// 留空则显示原版内容
-let sub = 'sub.cmliussss.workers.dev';// 内置优选订阅生成器，可自行搭建 https://github.com/cmliu/WorkerVless2sub
-let subconverter = 'api.v1.mk';// clash订阅转换后端，目前使用肥羊的订阅转换功能。支持自建psub 可自行搭建https://github.com/bulianglin/psub
+let sub = 'vless-4ca.pages.dev';// 内置优选订阅生成器，可自行搭建 https://github.com/cmliu/WorkerVless2sub
+let subconverter = 'api.v1.mk';// clash订阅转换后端，目前使用肥羊的订阅转换功能。自带虚假uuid和host订阅。
 let subconfig = "https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini"; //订阅配置文件
 // The user name and password do not contain special characters
 // Setting the address will ignore proxyIP
@@ -71,13 +71,24 @@ export default {
 					const timestamp = Math.floor(now / 1000);
 					const today = new Date(now);
 					today.setHours(0, 0, 0, 0);
-					return new Response(`${vlessConfig}`, {
-					status: 200,
-					headers: {
-						"Content-Type": "text/plain;charset=utf-8",
-						"Subscription-Userinfo": `upload=0; download=${Math.floor(((now - today.getTime())/86400000) * 24 * 1099511627776)}; total=${24 * 1099511627776}; expire=${timestamp}`,
+					if (userAgent && userAgent.includes('mozilla')){
+						return new Response(`${vlessConfig}`, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain;charset=utf-8",
+							}
+						});
+					} else {
+						return new Response(`${vlessConfig}`, {
+							status: 200,
+							headers: {
+								"Content-Disposition": "attachment; filename=edgetunnel; filename*=utf-8''edgetunnel",
+								"Content-Type": "text/plain;charset=utf-8",
+								"Profile-Update-Interval": "6",
+								"Subscription-Userinfo": `upload=0; download=${Math.floor(((now - today.getTime())/86400000) * 24 * 1099511627776)}; total=${24 * 1099511627776}; expire=${timestamp}`,
+							}
+						});
 					}
-					});
 				}
 				default:
 					return new Response('Not found', { status: 404 });
@@ -808,7 +819,7 @@ function generateRandomString() {
 	let characters = 'abcdefghijklmnopqrstuvwxyz';
 	let result = '';
 	for (let i = 0; i < length; i++) {
-	  result += characters[Math.floor(Math.random() * characters.length)];
+		result += characters[Math.floor(Math.random() * characters.length)];
 	}
 	return result;
 }
@@ -816,12 +827,12 @@ function generateRandomString() {
 function generateUUID() {
 	let uuid = '';
 	for (let i = 0; i < 32; i++) {
-	  let num = Math.floor(Math.random() * 16);
-	  if (num < 10) {
-		uuid += num;
-	  } else {
-		uuid += String.fromCharCode(num + 55);
-	  }
+		let num = Math.floor(Math.random() * 16);
+		if (num < 10) {
+			uuid += num;
+		} else {
+			uuid += String.fromCharCode(num + 55);
+		}
 	}
 	return uuid.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5').toLowerCase();
 }
@@ -910,8 +921,12 @@ async function getVLESSConfig(userID, hostName, sub, userAgent, RproxyIP) {
 			return 'Error: fetch is not available in this environment.';
 		}
 		// 如果是使用默认域名，则改成一个workers的域名，订阅器会加上代理
-		if (hostName.includes(".workers.dev") || hostName.includes(".pages.dev")){
+		if (hostName.includes(".workers.dev")){
 			fakeHostName = `${fakeHostName}.${generateRandomString()}${generateRandomNumber()}.workers.dev`;
+		} else if (hostName.includes(".pages.dev")){
+			fakeHostName = `${fakeHostName}.${generateRandomString()}${generateRandomNumber()}.pages.dev`;
+		} else if (hostName.includes("worker")){
+			fakeHostName = `worker.${fakeHostName}${generateRandomNumber()}.net`;
 		} else {
 			fakeHostName = `${fakeHostName}.${generateRandomNumber()}.xyz`
 		}
@@ -919,9 +934,9 @@ async function getVLESSConfig(userID, hostName, sub, userAgent, RproxyIP) {
 		let url = "";
 		let isBase64 = false;
 		if (userAgent.includes('clash')) {
-			url = `https://${subconverter}/sub?target=clash&url=https%3A%2F%2F${sub}%2Fsub%3Fhost%3D${fakeHostName}%26uuid%3D${fakeUserID}%26edgetunnel%3Dcmliu%26proxyip%3D${RproxyIP}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true`;
+			url = `https://${subconverter}/sub?target=clash&url=https%3A%2F%2F${sub}%2Fsub%3Fhost%3D${fakeHostName}%26uuid%3D${fakeUserID}%26edgetunnel%3Dcmliu%26proxyip%3D${RproxyIP}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
 		} else if (userAgent.includes('sing-box') || userAgent.includes('singbox')) {
-			url = `https://${subconverter}/sub?target=singbox&url=https%3A%2F%2F${sub}%2Fsub%3Fhost%3D${fakeHostName}%26uuid%3D${fakeUserID}%26edgetunnel%3Dcmliu%26proxyip%3D${RproxyIP}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true`;
+			url = `https://${subconverter}/sub?target=singbox&url=https%3A%2F%2F${sub}%2Fsub%3Fhost%3D${fakeHostName}%26uuid%3D${fakeUserID}%26edgetunnel%3Dcmliu%26proxyip%3D${RproxyIP}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
 		} else {
 			url = `https://${sub}/sub?host=${fakeHostName}&uuid=${fakeUserID}&edgetunnel=cmliu&proxyip=${RproxyIP}`;
 			isBase64 = true;
